@@ -137,18 +137,12 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//验证token
-	r.ParseForm()
-	log.Println(r.Form)
-	token, ok := r.Form["token"]
-	if ok {
-		log.Println(token)
-	} else {
-		log.Println("token缺失")
-		conn.WriteMessage(websocket.CloseMessage, []byte{})
-		return
-	}
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), roomId: "1"}
-	log.Println(client)
+	token := r.FormValue("token")
+	roomId := RoomId(r.FormValue("roomId"))
+	log.Println(token)
+
+	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), roomId: roomId}
+
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
