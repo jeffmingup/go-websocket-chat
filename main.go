@@ -31,6 +31,10 @@ func getToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := r.FormValue("id")
+	_, err := RedisDo("set", "id:"+id, id)
+	if err != nil {
+		log.Println(err)
+	}
 	token, _ := GenerateToken(id)
 	log.Println(token)
 	w.Write([]byte(token))

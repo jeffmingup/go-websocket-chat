@@ -4,7 +4,11 @@
 
 package main
 
-import "log"
+import (
+	"encoding/json"
+	"log"
+	"time"
+)
 
 type RoomId string
 
@@ -48,10 +52,24 @@ func (h *Hub) run() {
 			}
 			h.room[client.roomId][client] = true
 			log.Println(h.room)
+			//写入开始观看时间
+			value, err := json.Marshal(map[string]string{"userId": client.userId, "liveId": string(client.roomId), "start_time": time.Now().Format("2006-01-02 15:04:05")})
+			if err != nil {
+				log.Println(err)
+
+			}
+			RedisDo("hset", "vte-go-meeting-start", client.clientNum, value)
+
 		case client := <-h.unregister:
 			if _, ok := h.room[client.roomId][client]; ok {
 				delete(h.room[client.roomId], client)
 				close(client.send)
+				value, err := json.Marshal(map[string]string{"userId": client.userId, "liveId": string(client.roomId), "end_time": time.Now().Format("2006-01-02 15:04:05")})
+				if err != nil {
+					log.Println(err)
+
+				}
+				RedisDo("hset", "vte-go-meeting-end", client.clientNum, value)
 			}
 		case broadcast := <-h.broadcast:
 			for client := range h.room[broadcast.roomId] {
