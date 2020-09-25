@@ -39,6 +39,7 @@ var upgrader = websocket.Upgrader{
 		return true
 	},
 }
+var ClientNum int
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
@@ -51,6 +52,10 @@ type Client struct {
 	send chan []byte
 
 	roomId RoomId
+
+	userId string
+
+	clientNum int
 }
 
 // readPump pumps messages from the websocket connection to the hub.
@@ -138,11 +143,19 @@ func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	}
 	//验证token
 	token := r.FormValue("token")
+	claims, err := ParseToken(token)
+
+	if err != nil {
+		log.Println(err)
+		conn.WriteMessage(websocket.CloseMessage, []byte{})
+		return
+	}
 	roomId := RoomId(r.FormValue("roomId"))
 	log.Println(token)
-
-	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), roomId: roomId}
-
+	ClientNum++
+	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256), roomId: roomId, userId: claims.Id, clientNum: ClientNum}
+	log.Println(roomId)
+	log.Println(claims.Id)
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
